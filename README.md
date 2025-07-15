@@ -124,7 +124,7 @@ maven {
     credentials {
         username = "_json_key_base64"
         password = findProperty("zephr_maven_repo.password") as String?
-            ?: System.getenv("ZEPHR_SDK_MAVEN_ACCESS_KEY")
+            ?: throw GradleException("Missing required gradle property needed to access zephr maven repo: 'zephr_maven_repo.password'")
     }
     authentication {
         create<BasicAuthentication>("basic")
