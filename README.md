@@ -82,9 +82,9 @@ Contact the zephr team to get a token to access our private repo to access the p
 
 ### 2. Set the Access Token
 
-You can supply the token via either:
+The token should be supplied via gradle property:
 
-#### Option A: Gradle properties file
+#### Example A: Gradle user properties file
 
 Add this line to `~/.gradle/gradle.properties`:
 
@@ -94,19 +94,16 @@ zephr_maven_repo.password=BASE64_ACCESS_TOKEN
 
 > ⚠️ Do **not** wrap the token in quotes. Ensure it is on one line.
 
-#### Option B: Environment variable
+#### Example B: Gradle local.properties
 
-**Linux/macOS:**
+Note: local.properties is not typically committed to vcs
+Add this line to the local.properties file in your android build root
 
-```bash
-export ZEPHR_SDK_MAVEN_ACCESS_KEY=BASE64_ACCESS_TOKEN
+```
+zephr_maven_repo.password=BASE64_ACCESS_TOKEN
 ```
 
-**Windows (Command Prompt):**
-
-```cmd
-set ZEPHR_SDK_MAVEN_ACCESS_KEY=BASE64_ACCESS_TOKEN
-```
+> ⚠️ Do **not** wrap the token in quotes. Ensure it is on one line.
 
 ---
 
