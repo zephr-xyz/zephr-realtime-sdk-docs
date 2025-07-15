@@ -29,6 +29,13 @@ Before you begin, make sure you have:
 
 ---
 
+## Requirements
+
+- **Minimum SDK version:** 31 (Android 12)
+- **Minimum Kotlin version:** 2.1.0
+
+---
+
 ## Usage
 
 1. Launch the app on your device.
