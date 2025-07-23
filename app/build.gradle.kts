@@ -68,7 +68,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.zephr.library:zephrLib:0.0.1-SNAPSHOT") {
+    implementation("com.zephr.library.pr-0:zephrLib:0.0.1-SNAPSHOT") {
         isChanging = true // <== zephr sdk snapshot is updated multiple times per day during preview period for bug fixes and improvements -- but note that the app api should be relatively stable
     }
 

@@ -135,7 +135,7 @@ maven {
 Then, add the SDK to your `dependencies` block:
 
 ```kotlin
-implementation("com.zephr.library:zephrLib:0.0.1-SNAPSHOT") {
+implementation("com.zephr.library.pr-0:zephrLib:0.0.1-SNAPSHOT") {
     isChanging = true // SDK updates frequently; always fetch latest during preview.
 }
 ```
