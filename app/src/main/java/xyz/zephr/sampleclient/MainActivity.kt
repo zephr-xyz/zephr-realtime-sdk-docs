@@ -18,9 +18,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import xyz.zephr.sampleclient.ui.theme.ZephrSampleClientAppTheme
-import com.zephr.sdk.v2.ZephrEventListener
-import com.zephr.sdk.v2.ZephrRealtimeSDK
-import com.zephr.sdk.v2.model.ZephrPoseEvent
+import xyz.zephr.sdk.v2.ZephrEventListener
+import xyz.zephr.sdk.v2.ZephrRealtimeSDK
+import xyz.zephr.sdk.v2.model.ZephrPoseEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -72,7 +72,7 @@ class MainActivity : ComponentActivity() {
         val zephrRealtimeSDK = ZephrRealtimeSDK.Builder(this.baseContext).build()
 
         zephrRealtimeSDK.requestLocationUpdates(object : ZephrEventListener {
-            override fun onZephrGnssReceived(zephrGnssEvent: com.zephr.sdk.v2.model.ZephrGnssEvent) {
+            override fun onZephrGnssReceived(zephrGnssEvent: xyz.zephr.sdk.v2.model.ZephrGnssEvent) {
                 val status = zephrGnssEvent.status
                 val location = zephrGnssEvent.location
                 if (location != null) {
