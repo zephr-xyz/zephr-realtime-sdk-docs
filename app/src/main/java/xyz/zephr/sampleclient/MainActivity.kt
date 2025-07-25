@@ -21,15 +21,8 @@ import xyz.zephr.sampleclient.ui.theme.ZephrSampleClientAppTheme
 import xyz.zephr.sdk.v2.ZephrEventListener
 import xyz.zephr.sdk.v2.ZephrRealtimeSDK
 import xyz.zephr.sdk.v2.model.ZephrPoseEvent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -90,14 +83,12 @@ class MainActivity : ComponentActivity() {
             ) {
                 Log.d(
                     TAG,
-                    "Pose Update - yaw: ${zephrPoseEvent.yprWithTimestamp?.first[0]} pitch: ${zephrPoseEvent.yprWithTimestamp?.first[1]} roll: ${zephrPoseEvent.yprWithTimestamp?.first[2]}"
+                    "Pose Update - yaw: ${zephrPoseEvent.yprWithTimestamp?.first?.get(0)} pitch: ${zephrPoseEvent.yprWithTimestamp?.first?.get(1)} roll: ${zephrPoseEvent.yprWithTimestamp?.first?.get(2)}"
                 )
             }
         })
 
-        serviceScope.launch {
-            zephrRealtimeSDK.start()
-        }
+        zephrRealtimeSDK.start()
     }
 }
 
