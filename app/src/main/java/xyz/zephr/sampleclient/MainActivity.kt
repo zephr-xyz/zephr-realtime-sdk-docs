@@ -25,19 +25,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import xyz.zephr.sampleclient.ui.theme.ZephrSampleClientAppTheme
 import com.zephr.sdk.v2.ZephrEventListener
 import com.zephr.sdk.v2.ZephrRealtimeManager
 import com.zephr.sdk.v2.model.ZephrPoseEvent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import xyz.zephr.sampleclient.service.ZephrGnssService
+import xyz.zephr.sampleclient.ui.theme.ZephrSampleClientAppTheme
 
 class MainActivity : ComponentActivity() {
-
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -114,9 +108,7 @@ class MainActivity : ComponentActivity() {
             }
         })
 
-        serviceScope.launch {
-            zephrRealtimeSDK.start()
-        }
+        zephrRealtimeSDK.start()
     }
 }
 
