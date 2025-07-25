@@ -135,7 +135,7 @@ maven {
 Then, add the SDK to your `dependencies` block:
 
 ```kotlin
-implementation("com.zephr.library.pr-0:zephrLib:0.0.1-SNAPSHOT") {
+implementation("xyz.zephr.library.pr-0:zephrLib:0.0.1-SNAPSHOT") {
     isChanging = true // SDK updates frequently; always fetch latest during preview.
 }
 ```
@@ -160,7 +160,7 @@ You can initialize the SDK and attach handlers for the sdk output using the buil
   val zephrRealtimeSDK = ZephrRealtimeSDK.Builder(this.baseContext).build()
 
   zephrRealtimeSDK.requestLocationUpdates(object : ZephrEventListener {
-      override fun onZephrGnssReceived(zephrGnssEvent: com.zephr.sdk.v2.model.ZephrGnssEvent) {
+      override fun onZephrGnssReceived(zephrGnssEvent: xyz.zephr.sdk.v2.model.ZephrGnssEvent) {
           val status = zephrGnssEvent.status
           val location = zephrGnssEvent.location
           if (location != null) {
