@@ -1,14 +1,21 @@
 package xyz.zephr.sampleclient
 
 import android.Manifest
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -16,15 +23,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import xyz.zephr.sampleclient.ui.theme.ZephrSampleClientAppTheme
 import com.zephr.sdk.v2.ZephrEventListener
-import com.zephr.sdk.v2.ZephrRealtimeSDK
+import com.zephr.sdk.v2.ZephrRealtimeManager
 import com.zephr.sdk.v2.model.ZephrPoseEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import xyz.zephr.sampleclient.service.ZephrGnssService
 
 class MainActivity : ComponentActivity() {
 
@@ -37,10 +46,20 @@ class MainActivity : ComponentActivity() {
                 // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = MaterialTheme.colorScheme.background,
                 ) {
-                    AppDetails()
+                    Box(modifier = Modifier.wrapContentSize(Alignment.Center))
+                    {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally // Center children horizontally
+                        ) {
+                            AppDetails()
+                            Spacer(modifier = Modifier.height(16.dp)) // Optional spacing
+                            LaunchForegroundServiceButton(this@MainActivity)
+                        }
+                    }
                 }
+
             }
         }
 
@@ -69,7 +88,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startLocationUpdates() {
-        val zephrRealtimeSDK = ZephrRealtimeSDK.Builder(this.baseContext).build()
+        val zephrRealtimeSDK = ZephrRealtimeManager.getZephrSDK(this)
 
         zephrRealtimeSDK.requestLocationUpdates(object : ZephrEventListener {
             override fun onZephrGnssReceived(zephrGnssEvent: com.zephr.sdk.v2.model.ZephrGnssEvent) {
@@ -90,7 +109,7 @@ class MainActivity : ComponentActivity() {
             ) {
                 Log.d(
                     TAG,
-                    "Pose Update - yaw: ${zephrPoseEvent.yprWithTimestamp?.first[0]} pitch: ${zephrPoseEvent.yprWithTimestamp?.first[1]} roll: ${zephrPoseEvent.yprWithTimestamp?.first[2]}"
+                    "Pose Update - yaw: ${zephrPoseEvent.yprWithTimestamp?.first?.get(0)} pitch: ${zephrPoseEvent.yprWithTimestamp?.first?.get(1)} roll: ${zephrPoseEvent.yprWithTimestamp?.first?.get(2)}"
                 )
             }
         })
@@ -101,15 +120,14 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+
+
 private const val TAG = "ZephrSampleClientApp"
 
 @Composable
-fun AppDetails(modifier: Modifier = Modifier) {
+fun AppDetails() {
     Text(
-        text = "Zephr Location SDK sample app",
-        modifier = modifier
-            .fillMaxSize()
-            .wrapContentSize(Alignment.Center)
+        text = "Zephr Location SDK sample app"
     )
 }
 
@@ -118,5 +136,19 @@ fun AppDetails(modifier: Modifier = Modifier) {
 fun AppDetailsPreview() {
     ZephrSampleClientAppTheme {
         AppDetails()
+    }
+}
+
+@Composable
+fun LaunchForegroundServiceButton(context: Context) {
+    Button(onClick = {
+        // Stop other logging
+        val zephrRealtimeSDK = ZephrRealtimeManager.getZephrSDK(context)
+        zephrRealtimeSDK.removeAllLocationUpdates()
+        // Launch service
+        val intent = Intent(context, ZephrGnssService::class.java)
+        ContextCompat.startForegroundService(context, intent)
+    }) {
+        Text("Launch Foreground Service")
     }
 }
