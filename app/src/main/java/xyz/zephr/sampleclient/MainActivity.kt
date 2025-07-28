@@ -112,8 +112,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-
-
 private const val TAG = "ZephrSampleClientApp"
 
 @Composable
