@@ -6,15 +6,17 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.os.Binder
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.zephr.sdk.v2.ZephrEventListener
-import com.zephr.sdk.v2.ZephrRealtimeManager
-import com.zephr.sdk.v2.ZephrRealtimeSDK
-import com.zephr.sdk.v2.model.ZephrPoseEvent
+import xyz.zephr.sdk.v2.ZephrEventListener
+import xyz.zephr.sdk.v2.ZephrRealtimeManager
+import xyz.zephr.sdk.v2.ZephrRealtimeSDK
+import xyz.zephr.sdk.v2.model.ZephrGnssEvent
+import xyz.zephr.sdk.v2.model.ZephrPoseEvent
 
 private const val TAG = "ZephrSampleService"
 
@@ -29,19 +31,11 @@ class ZephrGnssService : Service() {
     private lateinit var zephrSDK: ZephrRealtimeSDK
     private lateinit var handlerThread: HandlerThread
     private lateinit var handler: Handler
+    private val binder = GnssServiceBinder()
 
     private val zephrListener = object : ZephrEventListener {
-        override fun onZephrGnssReceived(zephrGnssEvent: com.zephr.sdk.v2.model.ZephrGnssEvent) {
-            val status = zephrGnssEvent.status
-            val location = zephrGnssEvent.location
-            if (location != null) {
-                Log.d(
-                    TAG,
-                    "GNSS Update - Status: $status, Lat: ${location.latitude}, Lng: ${location.longitude}, Alt: ${location.altitude}"
-                )
-            } else {
-                Log.d(TAG, "GNSS Update - Status: $status, Location: null")
-            }
+        override fun onZephrGnssReceived(zephrGnssEvent: ZephrGnssEvent) {
+            binder.onNewGnssData(zephrGnssEvent)
         }
 
         override fun onPoseChanged(
@@ -62,7 +56,6 @@ class ZephrGnssService : Service() {
 
         handlerThread = HandlerThread("GnssHandlerThread").apply { start() }
         handler = Handler(handlerThread.looper)
-
 
         registerGnssCallback()
     }
@@ -104,4 +97,21 @@ class ZephrGnssService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    inner class GnssServiceBinder : Binder() {
+        private var listener: ((ZephrGnssEvent) -> Unit)? = null
+
+        fun setGnssListener(callback: (ZephrGnssEvent) -> Unit) {
+            this.listener = callback
+        }
+
+        fun removeGnssListener() {
+            this.listener = null
+        }
+
+        // Called by internal GNSS callback
+        fun onNewGnssData(data: ZephrGnssEvent) {
+            listener?.invoke(data)
+        }
+    }
 }

@@ -1,10 +1,13 @@
 package xyz.zephr.sampleclient
 
 import android.Manifest
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.IBinder
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,7 +18,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -25,13 +27,58 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import xyz.zephr.sdk.v2.ZephrEventListener
-import xyz.zephr.sdk.v2.ZephrRealtimeManager
-import xyz.zephr.sdk.v2.model.ZephrPoseEvent
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import xyz.zephr.sampleclient.data.repo.ZephrGnssRepo
 import xyz.zephr.sampleclient.service.ZephrGnssService
+import xyz.zephr.sampleclient.ui.location.LocationViewModel
 import xyz.zephr.sampleclient.ui.theme.ZephrSampleClientAppTheme
 
+private const val TAG = "ZephrSampleClientApp"
+
 class MainActivity : ComponentActivity() {
+    private var service: ZephrGnssService? = null
+    private lateinit var viewModel: LocationViewModel
+
+    private val connection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+            val localBinder = binder as ZephrGnssService.GnssServiceBinder
+
+            viewModel = ViewModelProvider(
+                this@MainActivity,
+                object : ViewModelProvider.Factory {
+                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                        @Suppress("UNCHECKED_CAST")
+                        return LocationViewModel(ZephrGnssRepo(localBinder)) as T
+                    }
+                }
+            )[LocationViewModel::class.java]
+
+            viewModel.startTracking()
+
+            lifecycleScope.launch {
+                viewModel.latestMeasurement.collect { zephrGnssEvent ->
+                    val status = zephrGnssEvent?.status
+                    val location = zephrGnssEvent?.location
+                    if (location != null) {
+                        Log.d(
+                            TAG,
+                            "GNSS Update - Status: $status, Lat: ${location.latitude}, Lng: ${location.longitude}, Alt: ${location.altitude}"
+                        )
+                    } else {
+                        Log.d(TAG, "GNSS Update - Status: $status, Location: null")
+                    }
+                }
+            }
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            viewModel.stopTracking()
+            service = null
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,15 +96,18 @@ class MainActivity : ComponentActivity() {
                         ) {
                             AppDetails()
                             Spacer(modifier = Modifier.height(16.dp)) // Optional spacing
-                            LaunchForegroundServiceButton(this@MainActivity)
+                            // TODO: put latest location here
                         }
                     }
                 }
-
             }
         }
-
         checkLocationPermission()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        unbindService(connection)
     }
 
     private fun checkLocationPermission() {
@@ -82,37 +132,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startLocationUpdates() {
-        val zephrRealtimeSDK = ZephrRealtimeManager.getZephrSDK(this)
-
-        zephrRealtimeSDK.requestLocationUpdates(object : ZephrEventListener {
-            override fun onZephrGnssReceived(zephrGnssEvent: xyz.zephr.sdk.v2.model.ZephrGnssEvent) {
-                val status = zephrGnssEvent.status
-                val location = zephrGnssEvent.location
-                if (location != null) {
-                    Log.d(
-                        TAG,
-                        "GNSS Update - Status: $status, Lat: ${location.latitude}, Lng: ${location.longitude}, Alt: ${location.altitude}"
-                    )
-                } else {
-                    Log.d(TAG, "GNSS Update - Status: $status, Location: null")
-                }
-            }
-
-            override fun onPoseChanged(
-                zephrPoseEvent: ZephrPoseEvent
-            ) {
-                Log.d(
-                    TAG,
-                    "Pose Update - yaw: ${zephrPoseEvent.yprWithTimestamp?.first?.get(0)} pitch: ${zephrPoseEvent.yprWithTimestamp?.first?.get(1)} roll: ${zephrPoseEvent.yprWithTimestamp?.first?.get(2)}"
-                )
-            }
-        })
-
-        zephrRealtimeSDK.start()
+        val intent = Intent(this, ZephrGnssService::class.java)
+        bindService(intent, connection, Context.BIND_AUTO_CREATE)
+        startForegroundService(intent)
     }
 }
 
-private const val TAG = "ZephrSampleClientApp"
 
 @Composable
 fun AppDetails() {
@@ -126,19 +151,5 @@ fun AppDetails() {
 fun AppDetailsPreview() {
     ZephrSampleClientAppTheme {
         AppDetails()
-    }
-}
-
-@Composable
-fun LaunchForegroundServiceButton(context: Context) {
-    Button(onClick = {
-        // Stop other logging
-        val zephrRealtimeSDK = ZephrRealtimeManager.getZephrSDK(context)
-        zephrRealtimeSDK.removeAllLocationUpdates()
-        // Launch service
-        val intent = Intent(context, ZephrGnssService::class.java)
-        ContextCompat.startForegroundService(context, intent)
-    }) {
-        Text("Launch Foreground Service")
     }
 }
