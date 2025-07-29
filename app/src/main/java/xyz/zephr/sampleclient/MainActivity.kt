@@ -1,14 +1,8 @@
 package xyz.zephr.sampleclient
 
 import android.Manifest
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.os.IBinder
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,67 +16,34 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.launch
 import xyz.zephr.sampleclient.data.repo.ZephrGnssRepo
-import xyz.zephr.sampleclient.service.ZephrGnssService
 import xyz.zephr.sampleclient.ui.location.LocationViewModel
+import xyz.zephr.sampleclient.ui.location.LocationViewModelFactory
 import xyz.zephr.sampleclient.ui.theme.ZephrSampleClientAppTheme
-
-private const val TAG = "ZephrSampleClientApp"
+import xyz.zephr.sdk.v2.model.ZephrGnssEvent
 
 class MainActivity : ComponentActivity() {
-    private var service: ZephrGnssService? = null
     private lateinit var viewModel: LocationViewModel
-
-    private val connection = object : ServiceConnection {
-        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-            val localBinder = binder as ZephrGnssService.GnssServiceBinder
-
-            viewModel = ViewModelProvider(
-                this@MainActivity,
-                object : ViewModelProvider.Factory {
-                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                        @Suppress("UNCHECKED_CAST")
-                        return LocationViewModel(ZephrGnssRepo(localBinder)) as T
-                    }
-                }
-            )[LocationViewModel::class.java]
-
-            viewModel.startTracking()
-
-            lifecycleScope.launch {
-                viewModel.latestMeasurement.collect { zephrGnssEvent ->
-                    val status = zephrGnssEvent?.status
-                    val location = zephrGnssEvent?.location
-                    if (location != null) {
-                        Log.d(
-                            TAG,
-                            "GNSS Update - Status: $status, Lat: ${location.latitude}, Lng: ${location.longitude}, Alt: ${location.altitude}"
-                        )
-                    } else {
-                        Log.d(TAG, "GNSS Update - Status: $status, Location: null")
-                    }
-                }
-            }
-        }
-
-        override fun onServiceDisconnected(name: ComponentName?) {
-            viewModel.stopTracking()
-            service = null
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val repository = ZephrGnssRepo(applicationContext)
+
+        val factory = LocationViewModelFactory(repository)
+        viewModel = ViewModelProvider(this, factory)[LocationViewModel::class.java]
+
+        checkLocationPermission()
+
         setContent {
+            val zephrGnssEvent = viewModel.latestMeasurement.collectAsState()
             ZephrSampleClientAppTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(
@@ -96,18 +57,12 @@ class MainActivity : ComponentActivity() {
                         ) {
                             AppDetails()
                             Spacer(modifier = Modifier.height(16.dp)) // Optional spacing
-                            // TODO: put latest location here
+                            LLADisplay(zephrGnssEvent.value)
                         }
                     }
                 }
             }
         }
-        checkLocationPermission()
-    }
-
-    override fun onStop() {
-        super.onStop()
-        unbindService(connection)
     }
 
     private fun checkLocationPermission() {
@@ -117,24 +72,18 @@ class MainActivity : ComponentActivity() {
             ) == PackageManager.PERMISSION_GRANTED
         ) {
             // Permission given, initialize ZephrRealtimeSDK
-            startLocationUpdates()
+            viewModel.start()
         } else {
             // Permission NOT given (yet)
             registerForActivityResult(ActivityResultContracts.RequestPermission()) { permission ->
                 if (permission) {
                     // User granted, initialize ZephrRealtimeSDK
-                    startLocationUpdates()
+                    viewModel.start()
                 } else {
                     // User Declined
                 }
             }.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
-    }
-
-    private fun startLocationUpdates() {
-        val intent = Intent(this, ZephrGnssService::class.java)
-        bindService(intent, connection, Context.BIND_AUTO_CREATE)
-        startForegroundService(intent)
     }
 }
 
@@ -143,6 +92,19 @@ class MainActivity : ComponentActivity() {
 fun AppDetails() {
     Text(
         text = "Zephr Location SDK sample app"
+    )
+}
+
+@Composable
+fun LLADisplay(zephrGnssEvent: ZephrGnssEvent?) {
+    val location = zephrGnssEvent?.location
+    val status = zephrGnssEvent?.status
+    Text(
+        text = "Status: $status"
+    )
+    Spacer(modifier = Modifier.height(16.dp))
+    Text(
+        text = "LLA: [${location?.longitude}, ${location?.latitude}, ${location?.altitude}]"
     )
 }
 

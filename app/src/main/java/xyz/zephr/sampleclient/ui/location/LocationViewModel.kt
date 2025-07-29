@@ -15,6 +15,12 @@ class LocationViewModel(
     val latestMeasurement: StateFlow<ZephrGnssEvent?> =
         repository.gnssMeasurements.stateIn(viewModelScope, SharingStarted.Lazily, null)
 
-    fun startTracking() = repository.startUpdates()
-    fun stopTracking() = repository.stopUpdates()
+    fun start() {
+        repository.bindService()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        repository.unbindService()
+    }
 }

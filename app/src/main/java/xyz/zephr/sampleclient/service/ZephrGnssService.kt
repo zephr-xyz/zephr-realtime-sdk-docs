@@ -36,6 +36,12 @@ class ZephrGnssService : Service() {
     private val zephrListener = object : ZephrEventListener {
         override fun onZephrGnssReceived(zephrGnssEvent: ZephrGnssEvent) {
             binder.onNewGnssData(zephrGnssEvent)
+            val status = zephrGnssEvent.status
+            val location = zephrGnssEvent.location
+            Log.d(
+                TAG,
+                "GNSS Update - Status: $status, Lat: ${location?.latitude}, Lng: ${location?.longitude}, Alt: ${location?.altitude}"
+            )
         }
 
         override fun onPoseChanged(
@@ -58,6 +64,8 @@ class ZephrGnssService : Service() {
         handler = Handler(handlerThread.looper)
 
         registerGnssCallback()
+
+        zephrSDK.start()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -96,10 +104,12 @@ class ZephrGnssService : Service() {
         handlerThread.quitSafely()
     }
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    override fun onBind(intent: Intent?): IBinder = binder
 
     inner class GnssServiceBinder : Binder() {
         private var listener: ((ZephrGnssEvent) -> Unit)? = null
+
+        fun getService(): ZephrGnssService = this@ZephrGnssService
 
         fun setGnssListener(callback: (ZephrGnssEvent) -> Unit) {
             this.listener = callback
