@@ -104,7 +104,9 @@ fun LLADisplay(zephrGnssEvent: ZephrGnssEvent?) {
     )
     Spacer(modifier = Modifier.height(16.dp))
     Text(
-        text = "LLA: [${location?.longitude}, ${location?.latitude}, ${location?.altitude}]"
+        text = "Lat: ${location?.latitude}\n" +
+                "Lon: ${location?.longitude}\n" +
+                "Alt: ${location?.altitude}"
     )
 }
 
