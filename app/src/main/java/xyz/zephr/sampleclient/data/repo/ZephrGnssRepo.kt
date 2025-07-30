@@ -23,6 +23,7 @@ class ZephrGnssRepo(
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
             val localBinder = binder as ZephrGnssService.GnssServiceBinder
+            service = localBinder.getService()
 
             localBinder.setGnssListener {
                 _gnssFlow.tryEmit(it)
