@@ -19,7 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import xyz.zephr.sampleclient.ui.theme.ZephrSampleClientAppTheme
 import xyz.zephr.sdk.v2.ZephrEventListener
-import xyz.zephr.sdk.v2.ZephrRealtimeSDK
+import xyz.zephr.sdk.v2.ZephrLocationManager
 import xyz.zephr.sdk.v2.model.ZephrPoseEvent
 
 class MainActivity : ComponentActivity() {
@@ -36,8 +36,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-
         checkLocationPermission()
+    }
+
+    override fun onDestroy() {
+        ZephrLocationManager.stop(this)
+        super.onDestroy()
     }
 
     private fun checkLocationPermission() {
@@ -62,9 +66,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startLocationUpdates() {
-        val zephrRealtimeSDK = ZephrRealtimeSDK.Builder(this.baseContext).build()
-
-        zephrRealtimeSDK.requestLocationUpdates(object : ZephrEventListener {
+        ZephrLocationManager.start(this)
+        ZephrLocationManager.requestLocationUpdates(object : ZephrEventListener {
             override fun onZephrGnssReceived(zephrGnssEvent: xyz.zephr.sdk.v2.model.ZephrGnssEvent) {
                 val status = zephrGnssEvent.status
                 val location = zephrGnssEvent.location
@@ -87,8 +90,6 @@ class MainActivity : ComponentActivity() {
                 )
             }
         })
-
-        zephrRealtimeSDK.start()
     }
 }
 
