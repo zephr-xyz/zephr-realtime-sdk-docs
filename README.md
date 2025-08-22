@@ -135,7 +135,7 @@ maven {
 Then, add the SDK to your `dependencies` block:
 
 ```kotlin
-implementation("xyz.zephr.library.pr-0:zephrLib:0.0.1-SNAPSHOT") {
+implementation("xyz.zephr.library.pr-0:zephrLib:0.0.2-SNAPSHOT") {
     isChanging = true // SDK updates frequently; always fetch latest during preview.
 }
 ```
@@ -157,29 +157,36 @@ Sync your project after making these changes.
 You can initialize the SDK and attach handlers for the sdk output using the builder pattern, as shown in `MainActivity.kt`:
 
 ```kotlin
-  val zephrRealtimeSDK = ZephrRealtimeSDK.Builder(this.baseContext).build()
+ZephrLocationManager.requestLocationUpdates(object : ZephrEventListener {
+    override fun onZephrGnssReceived(zephrGnssEvent: xyz.zephr.sdk.v2.model.ZephrGnssEvent) {
+        val status = zephrGnssEvent.status
+        val location = zephrGnssEvent.location
+        if (location != null) {
+            Log.d(
+                TAG,
+                "GNSS Update - Status: $status, Lat: ${location.latitude}, Lng: ${location.longitude}, Alt: ${location.altitude}"
+            )
+        } else {
+            Log.d(TAG, "GNSS Update - Status: $status, Location: null")
+        }
+    }
 
-  zephrRealtimeSDK.requestLocationUpdates(object : ZephrEventListener {
-      override fun onZephrGnssReceived(zephrGnssEvent: xyz.zephr.sdk.v2.model.ZephrGnssEvent) {
-          val status = zephrGnssEvent.status
-          val location = zephrGnssEvent.location
-          if (location != null) {
-              Log.d(TAG, "GNSS Update - Status: $status, Lat: ${location.latitude}, Lng: ${location.longitude}, Alt: ${location.altitude}")
-          } else {
-              Log.d(TAG, "GNSS Update - Status: $status, Location: null")
-          }
-      }
+    override fun onPoseChanged(
+        zephrPoseEvent: ZephrPoseEvent
+    ) {
+        Log.d(
+            TAG,
+            "Pose Update - yaw: ${zephrPoseEvent.yprWithTimestamp?.first?.get(0)} pitch: ${zephrPoseEvent.yprWithTimestamp?.first?.get(1)} roll: ${zephrPoseEvent.yprWithTimestamp?.first?.get(2)}"
+        )
+    }
+})
 
-      override fun onPoseChanged(
-          zephrPoseEvent: ZephrPoseEvent
-      ) {
-          Log.d(TAG, "Pose Update - yaw: ${zephrPoseEvent.yprWithTimestamp?.first[0]} pitch: ${zephrPoseEvent.yprWithTimestamp?.first[1]} roll: ${zephrPoseEvent.yprWithTimestamp?.first[2]}")
-      }
-  })
+ZephrLocationManager.start(this) // Pass your context here, which may be "this" within an activity
+```
 
-  serviceScope.launch {
-      zephrRealtimeSDK.start()
-  }
+And to stop updates and shut down the location service, run:
+```kotlin
+ZephrLocationManager.stop(this) // Pass your context here, which may be "this" within an activity
 ```
 
 ---
