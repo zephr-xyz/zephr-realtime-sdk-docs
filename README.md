@@ -135,8 +135,8 @@ maven {
 Then, add the SDK to your `dependencies` block:
 
 ```kotlin
-implementation("xyz.zephr.library.pr-0:zephrLib:0.0.2-SNAPSHOT") {
-    isChanging = true // SDK updates frequently; always fetch latest during preview.
+implementation("xyz.zephr.sdk.pr-prod:positioning:0.1.0-SNAPSHOT") {
+    isChanging = true // <== zephr sdk snapshot is updated multiple times per day during preview period for bug fixes and improvements -- but note that the app api should be relatively stable
 }
 ```
 
@@ -185,6 +185,7 @@ ZephrLocationManager.start(this) // Pass your context here, which may be "this" 
 ```
 
 And to stop updates and shut down the location service, run:
+
 ```kotlin
 ZephrLocationManager.stop(this) // Pass your context here, which may be "this" within an activity
 ```

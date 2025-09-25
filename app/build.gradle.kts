@@ -28,6 +28,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
@@ -68,7 +69,7 @@ repositories {
 }
 
 dependencies {
-    implementation("xyz.zephr.library.pr-0:zephrLib:0.0.2-SNAPSHOT") {
+    implementation("xyz.zephr.sdk.pr-prod:positioning:0.1.0-SNAPSHOT") {
         isChanging = true // <== zephr sdk snapshot is updated multiple times per day during preview period for bug fixes and improvements -- but note that the app api should be relatively stable
     }
 
