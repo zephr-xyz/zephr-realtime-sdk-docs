@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresPermission
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.MaterialTheme
@@ -20,6 +21,7 @@ import androidx.core.content.ContextCompat
 import xyz.zephr.sampleclient.ui.theme.ZephrSampleClientAppTheme
 import xyz.zephr.sdk.v2.ZephrEventListener
 import xyz.zephr.sdk.v2.ZephrLocationManager
+import xyz.zephr.sdk.v2.model.ZephrLocationEvent
 import xyz.zephr.sdk.v2.model.ZephrPoseEvent
 
 class MainActivity : ComponentActivity() {
@@ -65,12 +67,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.POST_NOTIFICATIONS])
     private fun startLocationUpdates() {
         ZephrLocationManager.start(this)
         ZephrLocationManager.requestLocationUpdates(object : ZephrEventListener {
-            override fun onZephrGnssReceived(zephrGnssEvent: xyz.zephr.sdk.v2.model.ZephrGnssEvent) {
-                val status = zephrGnssEvent.status
-                val location = zephrGnssEvent.location
+            override fun onZephrLocationChanged(zephrLocationEvent: ZephrLocationEvent) {
+                val status = zephrLocationEvent.status
+                val location = zephrLocationEvent.location
                 if (location != null) {
                     Log.d(
                         TAG,
