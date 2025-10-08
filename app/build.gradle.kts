@@ -54,25 +54,10 @@ android {
 repositories {
     google()
     mavenCentral()
-
-    maven {
-        url = uri("https://us-central1-maven.pkg.dev/zephr-xyz-firebase-development/maven-repo")
-        credentials {
-            username = "_json_key_base64"
-            password = findProperty("zephr_maven_repo.password") as String?
-              ?: throw GradleException("Missing required gradle property needed to access zephr maven repo: 'zephr_maven_repo.password'")
-        }
-        authentication {
-            create<BasicAuthentication>("basic")
-        }
-    }
 }
 
 dependencies {
-    implementation("xyz.zephr.sdk.pr-prod:positioning:0.1.0-SNAPSHOT") {
-        isChanging = true // <== zephr sdk snapshot is updated multiple times per day during preview period for bug fixes and improvements -- but note that the app api should be relatively stable
-    }
-
+    implementation("xyz.zephr.sdk.final:positioning:0.2.+")
     implementation("androidx.core:core-ktx:1.16.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.1")
     implementation("androidx.activity:activity-compose:1.10.1")

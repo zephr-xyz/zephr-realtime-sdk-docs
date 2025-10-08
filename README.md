@@ -73,94 +73,45 @@ private fun checkLocationPermission() {
 Also ensure the following permissions are declared in your `AndroidManifest.xml`:
 
 ```xml
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 <uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 ```
 
 ---
 
 ## SDK Integration
 
-### 1. Get Access Token for preview release
+### 1. Sign up for the waitlist from this page (join waitlist button) -- https://zephr.xyz/
 
-Contact the zephr team to get a token to access our private repo to access the preview release.
-
----
-
-### 2. Set the Access Token
-
-The token should be supplied via gradle property:
-
-#### Example A: Gradle user properties file
-
-Add this line to `~/.gradle/gradle.properties`:
-
-```
-zephr_maven_repo.password=BASE64_ACCESS_TOKEN
-```
-
-> ⚠️ Do **not** wrap the token in quotes. Ensure it is on one line.
-
-#### Example B: Gradle local.properties
-
-Note: local.properties is not typically committed to vcs
-Add this line to the local.properties file in your android build root
-
-```
-zephr_maven_repo.password=BASE64_ACCESS_TOKEN
-```
-
-> ⚠️ Do **not** wrap the token in quotes. Ensure it is on one line.
+When you are accepted into the early access preview, you'll be given instructions for how to setup sdk authorization
 
 ---
 
-### 3. Add Zephr SDK to Your Gradle Build
+### 2. Add the Zephr SDK to Your Gradle Build
 
-In your `build.gradle.kts`, add the Zephr private Maven repo inside the `repositories` block:
-
-```kotlin
-maven {
-    url = uri("https://us-central1-maven.pkg.dev/zephr-xyz-firebase-development/maven-repo")
-    credentials {
-        username = "_json_key_base64"
-        password = findProperty("zephr_maven_repo.password") as String?
-            ?: throw GradleException("Missing required gradle property needed to access zephr maven repo: 'zephr_maven_repo.password'")
-    }
-    authentication {
-        create<BasicAuthentication>("basic")
-    }
-}
-```
-
-Then, add the SDK to your `dependencies` block:
+Just add the SDK to your `dependencies` block:
 
 ```kotlin
-implementation("xyz.zephr.sdk.pr-prod:positioning:0.1.0-SNAPSHOT") {
-    isChanging = true // <== zephr sdk snapshot is updated multiple times per day during preview period for bug fixes and improvements -- but note that the app api should be relatively stable
-}
+// NOTE: during soft launch, new zephr sdk releases will be cut regularly
+// please prefer to depend on latest point release to ensure
+// you get the latest fixes and improvements
+implementation("xyz.zephr.sdk.final:positioning:0.2.+")
 ```
-
-Tell Gradle to check for updated snapshots hourly:
-
-```kotlin
-configurations.all {
-    resolutionStrategy.cacheChangingModulesFor(1, "hours")
-}
-```
-
-Sync your project after making these changes.
 
 ---
 
-### 4. Initialize the SDK
+### 3. Initialize the SDK
 
-You can initialize the SDK and attach handlers for the sdk output using the builder pattern, as shown in `MainActivity.kt`:
+Initialize the SDK and attach handlers to receive the sdk output using the builder pattern, as shown in `MainActivity.kt` with relevant snippets reproduced below:
 
 ```kotlin
 ZephrLocationManager.requestLocationUpdates(object : ZephrEventListener {
-    override fun onZephrGnssReceived(zephrGnssEvent: xyz.zephr.sdk.v2.model.ZephrGnssEvent) {
-        val status = zephrGnssEvent.status
-        val location = zephrGnssEvent.location
+    override fun onZephrLocationChanged(zephrLocationEvent: ZephrLocationEvent) {
+        val status = zephrLocationEvent.status
+        val location = zephrLocationEvent.location
         if (location != null) {
             Log.d(
                 TAG,
@@ -184,7 +135,7 @@ ZephrLocationManager.requestLocationUpdates(object : ZephrEventListener {
 ZephrLocationManager.start(this) // Pass your context here, which may be "this" within an activity
 ```
 
-And to stop updates and shut down the location service, run:
+To stop updates and shut down the location service, run:
 
 ```kotlin
 ZephrLocationManager.stop(this) // Pass your context here, which may be "this" within an activity
