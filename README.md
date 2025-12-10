@@ -84,9 +84,10 @@ Also ensure the following permissions are declared in your `AndroidManifest.xml`
 
 ## SDK Integration
 
-### 1. Sign up for the waitlist from this page (join waitlist button) -- https://zephr.xyz/
+### 1. Create a zephr account and setup SDK authentication
 
-When you are accepted into the early access preview, you'll be given instructions for how to setup sdk authorization
+- Sign up here: https://zephr.xyz/auth/signup
+- Follow these instructions to authenticate your app with Zephr backend services that the SDK depends on: https://zephr.xyz/developer-portal/cert-digest-instructions 
 
 ---
 
