@@ -17,14 +17,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import xyz.zephr.sampleclient.ui.theme.ZephrSampleClientAppTheme
-import xyz.zephr.sdk.v2.ZephrEventListener
-import xyz.zephr.sdk.v2.ZephrLocationManager
-import xyz.zephr.sdk.v2.model.ZephrLocationEvent
-import xyz.zephr.sdk.v2.model.ZephrPoseEvent
+import xyz.zephr.sdk.api.ZephrLocationManager
+import xyz.zephr.sdk.api.ZephrTypes
 
 class MainActivity : ComponentActivity() {
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -46,6 +46,7 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     private fun checkLocationPermission() {
         if (ContextCompat.checkSelfPermission(
                 this,
@@ -69,9 +70,29 @@ class MainActivity : ComponentActivity() {
 
     @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.POST_NOTIFICATIONS])
     private fun startLocationUpdates() {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED || ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED || ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return
+        }
         ZephrLocationManager.start(this)
-        ZephrLocationManager.requestLocationUpdates(object : ZephrEventListener {
-            override fun onZephrLocationChanged(zephrLocationEvent: ZephrLocationEvent) {
+        ZephrLocationManager.requestLocationUpdates(object : ZephrTypes.ZephrEventListener {
+            override fun onZephrLocationChanged(zephrLocationEvent: ZephrTypes.ZephrLocationEvent) {
                 val status = zephrLocationEvent.status
                 val location = zephrLocationEvent.location
                 if (location != null) {
@@ -85,7 +106,7 @@ class MainActivity : ComponentActivity() {
             }
 
             override fun onPoseChanged(
-                zephrPoseEvent: ZephrPoseEvent
+                zephrPoseEvent: ZephrTypes.ZephrPoseEvent
             ) {
                 Log.d(
                     TAG,
