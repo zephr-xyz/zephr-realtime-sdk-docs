@@ -54,10 +54,20 @@ android {
 repositories {
     google()
     mavenCentral()
+
+    // NOTE: this is a convenience for internal testing
+    // Only users with access to private maven where pre-release artifacts are published will have the `zephr_developer_name` gradle property set
+    // for all other users, the artifact registry is not required and cannot be used
+    if (providers.gradleProperty("zephr_developer_name").orNull != null) {
+        maven {
+            name = "GoogleArtifactRegistry"
+            url = uri("artifactregistry://us-central1-maven.pkg.dev/zephr-xyz-firebase-development/maven-repo")
+        }
+    }
 }
 
 dependencies {
-    implementation("xyz.zephr.sdk.final:positioning:0.2.+")
+    implementation("xyz.zephr.sdk.ashtonite1:positioning:0.3.+")
     implementation("androidx.core:core-ktx:1.16.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.1")
     implementation("androidx.activity:activity-compose:1.10.1")
