@@ -52,20 +52,103 @@ Pose Update - yaw: 121.3, pitch: 1.2, roll: 3.4
 
 ## Permissions
 
-To use ZephrRealtimeSDK, your app must request and receive the `ACCESS_FINE_LOCATION` permission. An example implementation is provided in `MainActivity.kt`.
+To use ZephrRealtimeSDK, your app must request and receive the `ACCESS_FINE_LOCATION` and
+`ACCESS_COURSE_LOCATION` permissions, and with API 33 and later, `POST_NOTIFICATIONS`. An example
+implementation is provided in `MainActivity.kt` using google accompanist.
 
 ```kotlin
-private fun checkLocationPermission() {
-    if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-        startLocationUpdates()
-    } else {
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) {
-                startLocationUpdates()
-            } else {
-                // Handle denial
+@Composable
+fun LocationTrackingScreen(onStart: () -> Unit, onStop: () -> Unit) {
+    val permissionState = rememberMultiplePermissionsState(
+        permissions = mutableListOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ).apply {
+            // POST_NOTIFICATIONS only exists on API 33+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                add(Manifest.permission.POST_NOTIFICATIONS)
             }
-        }.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    )
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (permissionState.allPermissionsGranted) {
+            // Screen when permissions are granted
+            Text("Location Permissions Granted")
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = onStart) { Text("Start Zephr Service") }
+            Button(onClick = onStop) { Text("Stop Zephr Service") }
+        } else {
+            // Permission Denied / Initial Screen
+            val textToShow = if (permissionState.shouldShowRationale) {
+                "Location and Notification access is needed to start Zephr location service."
+            } else {
+                "This feature requires Location and Notification permissions."
+            }
+
+            Text(textToShow, textAlign = TextAlign.Center, modifier = Modifier.padding(16.dp))
+            Button(onClick = { permissionState.launchMultiplePermissionRequest() }) {
+                Text("Grant Permissions")
+            }
+        }
+    }
+}
+```
+However, if you do not wish to add a dependency, you can check for permissions natively.
+
+```kotlin
+@Composable
+fun LocationTrackingScreen(onStart: () -> Unit, onStop: () -> Unit) {
+    val context = LocalContext.current
+    
+    val requiredPermissions = mutableListOf(
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.ACCESS_COARSE_LOCATION
+    ).apply {
+        // POST_NOTIFICATIONS only exists on API 33+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }.toTypedArray()
+    
+    var permissionsGranted by remember {
+        mutableStateOf(requiredPermissions.all {
+            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+        })
+    }
+    
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { resultMap ->
+        // Check if all permissions in the map are true
+        permissionsGranted = resultMap.values.all { it }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (permissionsGranted) {
+            // Screen when permissions are granted
+            Text("Location Permissions Granted")
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = onStart) { Text("Start Zephr Service") }
+            Button(onClick = onStop) { Text("Stop Zephr Service") }
+        } else {
+            // Permission Denied / Initial Screen
+            val textToShow = "Location and Notification access is needed to start Zephr location service."
+
+            Text(textToShow, textAlign = TextAlign.Center, modifier = Modifier.padding(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = { launcher.launch(requiredPermissions) }) {
+                Text("Grant Permissions")
+            }
+        }
     }
 }
 ```
@@ -78,6 +161,7 @@ Also ensure the following permissions are declared in your `AndroidManifest.xml`
 <uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 ```
 
 ---
@@ -96,10 +180,10 @@ Also ensure the following permissions are declared in your `AndroidManifest.xml`
 Just add the SDK to your `dependencies` block:
 
 ```kotlin
-// NOTE: during soft launch, new zephr sdk releases will be cut regularly
+// NOTE: during soft launch, new zephr sdk releases will be cut regularly
 // please prefer to depend on latest point release to ensure
 // you get the latest fixes and improvements
-implementation("xyz.zephr.sdk.final:positioning:0.2.+")
+implementation("xyz.zephr.sdk.final:positioning:0.3.+")
 ```
 
 ---
