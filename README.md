@@ -52,22 +52,81 @@ Pose Update - yaw: 121.3, pitch: 1.2, roll: 3.4
 
 ## Permissions
 
-To use ZephrRealtimeSDK, your app must request and receive the `ACCESS_FINE_LOCATION` permission. An example implementation is provided in `MainActivity.kt`.
+To use ZephrRealtimeSDK, your app must request and receive the `ACCESS_FINE_LOCATION` and
+`ACCESS_COURSE_LOCATION` permissions, and with API 33 and later, `POST_NOTIFICATIONS`. We have
+provided a dependency-free example of a permissions flow in this sample app, using
+`ActivityResultContracts.RequestMultiplePermissions()`, like below:
 
 ```kotlin
-private fun checkLocationPermission() {
-    if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-        startLocationUpdates()
-    } else {
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) {
-                startLocationUpdates()
-            } else {
-                // Handle denial
-            }
-        }.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+private val zephrRequiredPermissions = mutableListOf(
+    Manifest.permission.ACCESS_FINE_LOCATION,
+    Manifest.permission.ACCESS_COARSE_LOCATION
+).apply {
+    // POST_NOTIFICATIONS only exists on API 33+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        add(Manifest.permission.POST_NOTIFICATIONS)
+    }
+}.toTypedArray()
+
+private val permissionLauncher = registerForActivityResult(
+    ActivityResultContracts.RequestMultiplePermissions()
+) { result ->
+    val allGranted = result.values.all { it }
+    if (allGranted) {
+        permissionsGranted = true
     }
 }
+```
+
+Which can be launched with `permissionLauncher.launch(zephrRequiredPermissions)`. 
+
+Another common permission flow can is to use google accompanist permissions within Compose,
+like below:
+
+```kotlin
+@Composable
+fun LocationTrackingScreen(onStart: () -> Unit, onStop: () -> Unit) {
+    val permissionState = rememberMultiplePermissionsState(
+        permissions = mutableListOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ).apply {
+            // POST_NOTIFICATIONS only exists on API 33+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    )
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (permissionState.allPermissionsGranted) {
+            // Screen when permissions are granted
+            Text("Location Permissions Granted")
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = onStart) { Text("Start Zephr Service") }
+            Button(onClick = onStop) { Text("Stop Zephr Service") }
+        } else {
+            // Permission Denied / Initial Screen
+            val textToShow = if (permissionState.shouldShowRationale) {
+                "Location and Notification access is needed to start Zephr location service."
+            } else {
+                "This feature requires Location and Notification permissions."
+            }
+
+            Text(textToShow, textAlign = TextAlign.Center, modifier = Modifier.padding(16.dp))
+            Button(onClick = { permissionState.launchMultiplePermissionRequest() }) {
+                Text("Grant Permissions")
+            }
+        }
+    }
+}
+```
+However, if you do not wish to add a dependency, you can check for permissions natively.
+
 ```
 
 Also ensure the following permissions are declared in your `AndroidManifest.xml`:
@@ -78,6 +137,7 @@ Also ensure the following permissions are declared in your `AndroidManifest.xml`
 <uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 ```
 
 ---
@@ -96,10 +156,10 @@ Also ensure the following permissions are declared in your `AndroidManifest.xml`
 Just add the SDK to your `dependencies` block:
 
 ```kotlin
-// NOTE: during soft launch, new zephr sdk releases will be cut regularly
+// NOTE: during soft launch, new zephr sdk releases will be cut regularly
 // please prefer to depend on latest point release to ensure
 // you get the latest fixes and improvements
-implementation("xyz.zephr.sdk.final:positioning:0.2.+")
+implementation("xyz.zephr.sdk.final:positioning:0.3.+")
 ```
 
 ---
@@ -109,8 +169,8 @@ implementation("xyz.zephr.sdk.final:positioning:0.2.+")
 Initialize the SDK and attach handlers to receive the sdk output using the builder pattern, as shown in `MainActivity.kt` with relevant snippets reproduced below:
 
 ```kotlin
-ZephrLocationManager.requestLocationUpdates(object : ZephrEventListener {
-    override fun onZephrLocationChanged(zephrLocationEvent: ZephrLocationEvent) {
+ZephrLocationManager.requestLocationUpdates(object : ZephrTypes.ZephrEventListener {
+    override fun onZephrLocationChanged(zephrLocationEvent: ZephrTypes.ZephrLocationEvent) {
         val status = zephrLocationEvent.status
         val location = zephrLocationEvent.location
         if (location != null) {
@@ -124,7 +184,7 @@ ZephrLocationManager.requestLocationUpdates(object : ZephrEventListener {
     }
 
     override fun onPoseChanged(
-        zephrPoseEvent: ZephrPoseEvent
+        zephrPoseEvent: ZephrTypes.ZephrPoseEvent
     ) {
         Log.d(
             TAG,
@@ -141,6 +201,60 @@ To stop updates and shut down the location service, run:
 ```kotlin
 ZephrLocationManager.stop(this) // Pass your context here, which may be "this" within an activity
 ```
+
+## Migrating from 0.2.x to 0.3.x
+
+As of version 0.3.0, the import paths and data type namespace has changed from version 0.2.x. The
+import path for all symbols has changed from `xyz.zephr.sdk.v2` to `xyz.zephr.sdk.api`, and all data
+types can be imported under the namespace `xyz.zephr.sdk.api.ZephrTypes`, and will be preceded by
+`ZephrTypes.` when invoked.
+
+
+So, the following in 0.2.x:
+```kotlin
+import xyz.zephr.sdk.v2.ZephrEventListener
+import xyz.zephr.sdk.v2.ZephrLocationManager
+import xyz.zephr.sdk.v2.model.ZephrLocationEvent
+import xyz.zephr.sdk.v2.model.ZephrPoseEvent
+
+ZephrLocationManager.requestLocationUpdates(object : ZephrEventListener {
+    override fun onZephrLocationChanged(zephrLocationEvent: ZephrLocationEvent) {
+
+    }
+
+    override fun onPoseChanged(
+        zephrPoseEvent: ZephrPoseEvent
+    ) {
+
+    }
+})
+```
+
+Would become the following as of 0.3.0:
+```kotlin
+import xyz.zephr.sdk.api.ZephrLocationManager
+import xyz.zephr.sdk.api.ZephrTypes
+
+ZephrLocationManager.requestLocationUpdates(object : ZephrTypes.ZephrEventListener {
+    override fun onZephrLocationChanged(zephrLocationEvent: ZephrTypes.ZephrLocationEvent) {
+        
+    }
+
+    override fun onPoseChanged(
+        zephrPoseEvent: ZephrTypes.ZephrPoseEvent
+    ) {
+        
+    }
+})
+```
+
+```
+import xyz.zephr.sdk.api.ZephrTypes
+
+
+
+```
+
 
 ---
 

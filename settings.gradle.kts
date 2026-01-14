@@ -5,6 +5,5 @@ pluginManagement {
         mavenCentral()
     }
 }
-
 rootProject.name = "ZephrSampleClientApp"
 include(":app")
