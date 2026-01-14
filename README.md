@@ -53,8 +53,35 @@ Pose Update - yaw: 121.3, pitch: 1.2, roll: 3.4
 ## Permissions
 
 To use ZephrRealtimeSDK, your app must request and receive the `ACCESS_FINE_LOCATION` and
-`ACCESS_COURSE_LOCATION` permissions, and with API 33 and later, `POST_NOTIFICATIONS`. An example
-implementation is provided in `MainActivity.kt` using google accompanist.
+`ACCESS_COURSE_LOCATION` permissions, and with API 33 and later, `POST_NOTIFICATIONS`. We have
+provided a dependency-free example of a permissions flow in this sample app, using
+`ActivityResultContracts.RequestMultiplePermissions()`, like below:
+
+```kotlin
+private val zephrRequiredPermissions = mutableListOf(
+    Manifest.permission.ACCESS_FINE_LOCATION,
+    Manifest.permission.ACCESS_COARSE_LOCATION
+).apply {
+    // POST_NOTIFICATIONS only exists on API 33+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        add(Manifest.permission.POST_NOTIFICATIONS)
+    }
+}.toTypedArray()
+
+private val permissionLauncher = registerForActivityResult(
+    ActivityResultContracts.RequestMultiplePermissions()
+) { result ->
+    val allGranted = result.values.all { it }
+    if (allGranted) {
+        permissionsGranted = true
+    }
+}
+```
+
+Which can be launched with `permissionLauncher.launch(zephrRequiredPermissions)`. 
+
+Another common permission flow can is to use google accompanist permissions within Compose,
+like below:
 
 ```kotlin
 @Composable
@@ -100,57 +127,6 @@ fun LocationTrackingScreen(onStart: () -> Unit, onStop: () -> Unit) {
 ```
 However, if you do not wish to add a dependency, you can check for permissions natively.
 
-```kotlin
-@Composable
-fun LocationTrackingScreen(onStart: () -> Unit, onStop: () -> Unit) {
-    val context = LocalContext.current
-    
-    val requiredPermissions = mutableListOf(
-        Manifest.permission.ACCESS_FINE_LOCATION,
-        Manifest.permission.ACCESS_COARSE_LOCATION
-    ).apply {
-        // POST_NOTIFICATIONS only exists on API 33+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            add(Manifest.permission.POST_NOTIFICATIONS)
-        }
-    }.toTypedArray()
-    
-    var permissionsGranted by remember {
-        mutableStateOf(requiredPermissions.all {
-            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
-        })
-    }
-    
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { resultMap ->
-        // Check if all permissions in the map are true
-        permissionsGranted = resultMap.values.all { it }
-    }
-
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        if (permissionsGranted) {
-            // Screen when permissions are granted
-            Text("Location Permissions Granted")
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onStart) { Text("Start Zephr Service") }
-            Button(onClick = onStop) { Text("Stop Zephr Service") }
-        } else {
-            // Permission Denied / Initial Screen
-            val textToShow = "Location and Notification access is needed to start Zephr location service."
-
-            Text(textToShow, textAlign = TextAlign.Center, modifier = Modifier.padding(16.dp))
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { launcher.launch(requiredPermissions) }) {
-                Text("Grant Permissions")
-            }
-        }
-    }
-}
 ```
 
 Also ensure the following permissions are declared in your `AndroidManifest.xml`:
@@ -193,8 +169,8 @@ implementation("xyz.zephr.sdk.final:positioning:0.3.+")
 Initialize the SDK and attach handlers to receive the sdk output using the builder pattern, as shown in `MainActivity.kt` with relevant snippets reproduced below:
 
 ```kotlin
-ZephrLocationManager.requestLocationUpdates(object : ZephrEventListener {
-    override fun onZephrLocationChanged(zephrLocationEvent: ZephrLocationEvent) {
+ZephrLocationManager.requestLocationUpdates(object : ZephrTypes.ZephrEventListener {
+    override fun onZephrLocationChanged(zephrLocationEvent: ZephrTypes.ZephrLocationEvent) {
         val status = zephrLocationEvent.status
         val location = zephrLocationEvent.location
         if (location != null) {
@@ -208,7 +184,7 @@ ZephrLocationManager.requestLocationUpdates(object : ZephrEventListener {
     }
 
     override fun onPoseChanged(
-        zephrPoseEvent: ZephrPoseEvent
+        zephrPoseEvent: ZephrTypes.ZephrPoseEvent
     ) {
         Log.d(
             TAG,
@@ -225,6 +201,60 @@ To stop updates and shut down the location service, run:
 ```kotlin
 ZephrLocationManager.stop(this) // Pass your context here, which may be "this" within an activity
 ```
+
+## Migrating from 0.2.x to 0.3.x
+
+As of version 0.3.0, the import paths and data type namespace has changed from version 0.2.x. The
+import path for all symbols has changed from `xyz.zephr.sdk.v2` to `xyz.zephr.sdk.api`, and all data
+types can be imported under the namespace `xyz.zephr.sdk.api.ZephrTypes`, and will be preceded by
+`ZephrTypes.` when invoked.
+
+
+So, the following in 0.2.x:
+```kotlin
+import xyz.zephr.sdk.v2.ZephrEventListener
+import xyz.zephr.sdk.v2.ZephrLocationManager
+import xyz.zephr.sdk.v2.model.ZephrLocationEvent
+import xyz.zephr.sdk.v2.model.ZephrPoseEvent
+
+ZephrLocationManager.requestLocationUpdates(object : ZephrEventListener {
+    override fun onZephrLocationChanged(zephrLocationEvent: ZephrLocationEvent) {
+
+    }
+
+    override fun onPoseChanged(
+        zephrPoseEvent: ZephrPoseEvent
+    ) {
+
+    }
+})
+```
+
+Would become the following as of 0.3.0:
+```kotlin
+import xyz.zephr.sdk.api.ZephrLocationManager
+import xyz.zephr.sdk.api.ZephrTypes
+
+ZephrLocationManager.requestLocationUpdates(object : ZephrTypes.ZephrEventListener {
+    override fun onZephrLocationChanged(zephrLocationEvent: ZephrTypes.ZephrLocationEvent) {
+        
+    }
+
+    override fun onPoseChanged(
+        zephrPoseEvent: ZephrTypes.ZephrPoseEvent
+    ) {
+        
+    }
+})
+```
+
+```
+import xyz.zephr.sdk.api.ZephrTypes
+
+
+
+```
+
 
 ---
 
