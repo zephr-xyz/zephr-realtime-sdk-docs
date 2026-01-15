@@ -125,9 +125,6 @@ fun LocationTrackingScreen(onStart: () -> Unit, onStop: () -> Unit) {
     }
 }
 ```
-However, if you do not wish to add a dependency, you can check for permissions natively.
-
-```
 
 Also ensure the following permissions are declared in your `AndroidManifest.xml`:
 
@@ -247,14 +244,6 @@ ZephrLocationManager.requestLocationUpdates(object : ZephrTypes.ZephrEventListen
     }
 })
 ```
-
-```
-import xyz.zephr.sdk.api.ZephrTypes
-
-
-
-```
-
 
 ---
 
