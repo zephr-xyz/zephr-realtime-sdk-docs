@@ -61,7 +61,7 @@ repositories {
 }
 
 dependencies {
-    implementation("xyz.zephr.sdk.final:positioning:0.3.+")
+    implementation("xyz.zephr.sdk.final:positioning:0.4.+")
     implementation("androidx.core:core-ktx:1.17.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
     implementation("androidx.activity:activity-compose:1.12.2")
