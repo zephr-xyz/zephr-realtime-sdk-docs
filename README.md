@@ -31,8 +31,9 @@ Before you begin, make sure you have:
 
 ## Requirements
 
-- **Minimum SDK version:** 31 (Android 12)
+- **Minimum SDK version:** 26 (Android 8.0)
 - **Minimum Kotlin version:** 2.1.0
+- **Minimum JDK toolchain:** Java 11
 
 ---
 
@@ -156,7 +157,7 @@ Just add the SDK to your `dependencies` block:
 // NOTE: during soft launch, new zephr sdk releases will be cut regularly
 // please prefer to depend on latest point release to ensure
 // you get the latest fixes and improvements
-implementation("xyz.zephr.sdk.final:positioning:0.3.+")
+implementation("xyz.zephr.sdk.final:positioning:0.4.+")
 ```
 
 ---
@@ -198,6 +199,10 @@ To stop updates and shut down the location service, run:
 ```kotlin
 ZephrLocationManager.stop(this) // Pass your context here, which may be "this" within an activity
 ```
+
+## Updating from 0.3.x to 0.4.x
+
+Version 0.4.0 raises the minimum Java bytecode compatibility from Java 8 to Java 11, so if your app is compiled with a toolchain older than Java 11 it may not compile with our SDK dependency.
 
 ## Migrating from 0.2.x to 0.3.x
 
