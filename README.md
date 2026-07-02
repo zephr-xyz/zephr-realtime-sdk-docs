@@ -200,6 +200,23 @@ To stop updates and shut down the location service, run:
 ZephrLocationManager.stop(this) // Pass your context here, which may be "this" within an activity
 ```
 
+## Synchronous location updates
+To request the most recent location synchronously, call `ZephrLocationManager.getMostRecentLocation()`
+while the SDK is running:
+
+```kotlin
+val recentLocation = ZephrLocationManager.getMostRecentLocation()
+```
+
+## Foreground only usage
+
+As of version `0.4.6`, if your app requires location tracking only while the user has the app in the foreground, you may start
+the SDK without its background service using the `ZephrEmbeddedLocationManager`. This will not launch
+a foreground service or notification, and won't require the `POST_NOTIFICATIONS` permission. However,
+if the app is backgrounded for too long, the solution will degrade and then stop as Android slows or stops GNSS and
+sensor events. Usage of this version is the same, simply replaced calls to `ZephrLocationManager` to
+`ZephrEmbeddedLocationManager` and omit references to `POST_NOTIFICATIONS` in your permissions checks.
+
 ## Updating from 0.3.x to 0.4.x
 
 Version 0.4.0 raises the minimum Java bytecode compatibility from Java 8 to Java 11, so if your app is compiled with a toolchain older than Java 11 it may not compile with our SDK dependency.
