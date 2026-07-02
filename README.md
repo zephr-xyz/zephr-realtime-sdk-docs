@@ -208,14 +208,14 @@ while the SDK is running:
 val recentLocation = ZephrLocationManager.getMostRecentLocation()
 ```
 
-## Foreground only usage
+## Usage without foreground service
 
-As of version `0.4.6`, if your app requires location tracking only while the user has the app in the foreground, you may start
-the SDK without its background service using the `ZephrEmbeddedLocationManager`. This will not launch
+As of version `0.4.6`, if your app requires location tracking only while the user has the app on the screen, you may start
+the SDK without its foreground service using the `ZephrEmbeddedLocationManager`. This will not launch
 a foreground service or notification, and won't require the `POST_NOTIFICATIONS` permission. However,
-if the app is backgrounded for too long, the solution will degrade and then stop as Android slows or stops GNSS and
-sensor events. Usage of this version is the same, simply replaced calls to `ZephrLocationManager` to
-`ZephrEmbeddedLocationManager` and omit references to `POST_NOTIFICATIONS` in your permissions checks.
+if the app is in the background for too long, the solution will degrade as Android slows or stops GNSS and
+sensor events, then will stop updating completely. Invocation of `ZephrEmbeddedLocationManager` is the same as `ZephrEmbeddedLocationManager`,
+simply replace calls to `ZephrLocationManager` with `ZephrEmbeddedLocationManager` and omit references to `POST_NOTIFICATIONS` in your permissions checks.
 
 ## Updating from 0.3.x to 0.4.x
 
