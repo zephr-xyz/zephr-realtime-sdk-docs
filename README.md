@@ -216,6 +216,37 @@ while the SDK is running:
 val recentLocation = ZephrLocationManager.getMostRecentLocation()
 ```
 
+## Anti-Spoof mode
+
+When running the Zephr positioning SDK in Anti-Spoof mode, the phone's
+Android-provided position is suppressed as an input to the Zephr positioning
+solution. The SDK continues to calculate position from raw GNSS measurements.
+Android network-location fallback is also disabled, even if
+`networkLocationFallbackEnabled` is set to `true`.
+
+In our testing to date, Anti-Spoof mode has often outperformed regular mode on
+lower-end Android devices.
+
+Anti-Spoof mode is off by default. To enable it, pass `antiSpoofEnabled = true`
+when starting the SDK after granting the required runtime permissions:
+
+```kotlin
+import xyz.zephr.sdk.api.ZephrLocationManager
+
+ZephrLocationManager.start(
+    context = applicationContext,
+    antiSpoofEnabled = true,
+)
+```
+
+Register your location listener after this call as shown in the initialization
+example above. Permissions, foreground-service behavior, and listener APIs are
+the same as in regular mode. Because Android position fallback is suppressed,
+location updates can contain a `null` location until Zephr has a solution.
+
+The same `antiSpoofEnabled = true` option is available on
+`ZephrEmbeddedLocationManager.start()` for embedded integrations.
+
 ## Usage without an SDK-managed foreground service
 
 For an app that already runs its own location foreground service, 0.5 adds an
