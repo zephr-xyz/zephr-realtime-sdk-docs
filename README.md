@@ -31,17 +31,24 @@ Before you begin, make sure you have:
 
 ## Requirements
 
-- **Minimum SDK version:** 26 (Android 8.0)
-- **Minimum Kotlin version:** 2.1.0
-- **Minimum JDK toolchain:** Java 11
+- **SDK minimum Android version:** API 26 (Android 8.0).
+- **SDK Java bytecode target:** Java 11. Set the consuming app's Java and Kotlin
+  JVM targets to 11 or newer.
+- **Sample app:** API 29 (Android 10) or newer, with compile/target SDK 36,
+  Kotlin 2.3.0, Android Gradle Plugin 8.13.2, and Gradle 8.13.
+- **JDK for building the sample:** JDK 17 or newer is required by
+  [Android Gradle Plugin 8.13](https://developer.android.com/build/releases/agp-8-13-0-release-notes).
+  This sample was built successfully with JDK 21 while targeting Java 11 bytecode.
 
 ---
 
 ## Usage
 
 1. Launch the app on your device.
-2. The app initializes and begins calculating your location.
-3. Filter the logcat output using the tag `ZephrSampleClientApp` to see SDK logs.
+2. Select **Background activity** (SDK-managed foreground service) or **Embedded
+   solver** (no SDK-managed service), then grant the requested permissions.
+3. Filter logcat using `BackgroundActivity` or `EmbeddedSolverActivity` to see
+   the sample's location and pose updates.
 4. The app will print position updates in latitude/longitude and pose updates like:
 
 ```
@@ -53,9 +60,15 @@ Pose Update - yaw: 121.3, pitch: 1.2, roll: 3.4
 
 ## Permissions
 
-To use ZephrRealtimeSDK, your app must request and receive the `ACCESS_FINE_LOCATION` and
-`ACCESS_COURSE_LOCATION` permissions, and with API 33 and later, `POST_NOTIFICATIONS`. We have
-provided a dependency-free example of a permissions flow in this sample app, using
+To receive raw GNSS measurements, request precise location access with
+`ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION`. The sample also requests
+`POST_NOTIFICATIONS` on API 33 and later so its foreground-service notification
+can appear in the notification drawer. Android does not require a grant of
+`POST_NOTIFICATIONS` just to launch a foreground service; see the
+[Android notification permission documentation](https://developer.android.com/develop/ui/views/notifications/notification-permission).
+Embedded integrations do not need this permission for the SDK itself.
+
+We have provided a dependency-free example of a permissions flow in this sample app, using
 `ActivityResultContracts.RequestMultiplePermissions()`, like below:
 
 ```kotlin
@@ -198,9 +211,12 @@ ZephrLocationManager.requestLocationUpdates(object : ZephrTypes.ZephrEventListen
 })
 ```
 
-Register the listener again after every start or restart. `start()` returns
-immediately; use `sdkStateFlow` to observe startup and `lastStartError` if startup
-fails. See the 0.4-to-0.5 migration section for lifecycle details.
+The sequence above starts a stopped SDK. Register the listener again for every
+new run. For an asynchronous restart, wait until the new run reaches `RUNNING`
+before registering; listeners attached to the outgoing run are discarded.
+`start()` returns immediately; use `sdkStateFlow` to observe startup and
+`lastStartError` if startup fails. See the 0.4-to-0.5 migration section for
+lifecycle details.
 
 To stop updates and shut down the location service, run:
 
@@ -287,8 +303,8 @@ from an SDK event callback. A callback-thread stop throws `IllegalStateException
 ## Migrating from 0.4.x to 0.5.x
 
 The main change in 0.5.0 is a shared SDK core and explicit foreground-service
-selection. The Maven coordinates, `xyz.zephr.sdk.api` imports, listener types, and
-minimum SDK requirements are unchanged. A normal
+selection. The Maven coordinates, `xyz.zephr.sdk.api` imports, listener types,
+minimum Android API level, and Java bytecode target are unchanged from 0.4.x. A normal
 `ZephrLocationManager.start(context)` still defaults to
 `ForegroundServiceMode.MANAGED`, which starts the SDK's location foreground
 service and notification. Existing integrations using only that manager can
@@ -302,8 +318,10 @@ Replace `xyz.zephr.sdk.final:positioning:0.4.+` (or a pinned 0.4 version) with
 ### 2. Run only one manager at a time
 
 `ZephrLocationManager` and `ZephrEmbeddedLocationManager` now share one in-process
-SDK. Starting one while the other is starting, running, or stopping throws
-`IllegalStateException`.
+SDK. Only one manager can own it at a time. Starting the other manager before
+the current owner has fully stopped is rejected with `IllegalStateException`.
+For `ZephrLocationManager`, a conflict detected after `start()` returns is
+reported through `lastStartError` instead of being thrown on the caller's thread.
 
 When switching from `ZephrLocationManager`, call `stop(context)` and wait for
 `sdkStateFlow` to report `ZephrSdkState.STOPPED` before starting the embedded
@@ -327,8 +345,11 @@ missing permissions or service startup failures, cannot be handled solely by a
 ### 4. Register listeners for each run
 
 Listeners attached to a running SDK are dropped when it stops or restarts.
-Call `requestLocationUpdates(listener)` again after each `start()` call.
-Listeners registered while the SDK is stopped are queued for the next start.
+Register them again for each new run. Listeners registered while the SDK is
+stopped are queued for the next start. During an asynchronous restart, wait for
+the new run to reach `RUNNING` before registering so the listener is attached
+to the new run. An existing `RUNNING` state from the outgoing run is not a
+confirmation that the restart has finished.
 
 Calling `ZephrLocationManager.start()` again restarts the SDK with the new
 configuration. Calling `ZephrEmbeddedLocationManager.start()` while it is already
